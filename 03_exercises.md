@@ -488,6 +488,8 @@ Regular users are more likely to use the bikes during the week, while there are 
 ## GitHub link
 
   20. Below, provide a link to your GitHub page with this set of Weekly Exercises. Specifically, if the name of the file is 03_exercises.Rmd, provide a link to the 03_exercises.md file, which is the one that will be most readable on GitHub.
+  
+  https://github.com/padgett-andrew/weekly-exercises-3/blob/master/03_exercises.md
 
 ## Challenge problem! 
 
