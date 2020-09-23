@@ -12,7 +12,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(echo = TRUE, error=TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r libraries}
@@ -164,7 +164,7 @@ Here is the code to read in the data. We do this a little differently than usual
 
 ```{r cache=TRUE}
 data_site <- 
-  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data-Small.rds" 
+  "https://www.macalester.edu/~dshuman1/data/112/2014-Q4-Trips-History-Data.rds" 
 Trips <- readRDS(gzcon(url(data_site)))
 Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv")
 ```
@@ -176,23 +176,19 @@ Stations<-read_csv("http://www.macalester.edu/~dshuman1/data/112/DC-Stations.csv
 It's natural to expect that bikes are rented more at some times of day, some days of the week, some months of the year than others. The variable `sdate` gives the time (including the date) that the rental started. Make the following plots and interpret them:
 
   7. A density plot, which is a smoothed out histogram, of the events versus `sdate`. Use `geom_density()`.
-  
-```{r}
-Trips
-```
 
   
 ```{r}
 Trips %>%
   ggplot(aes(x = sdate)) +
-  geom_density()
+  geom_density() + 
+  labs(title = "Bike Sharing Over Time", 
+       x = "Date", 
+       y = "Density")
 ```
-  
-  8. A density plot of the events versus time of day.  You can use `mutate()` with `lubridate`'s  `hour()` and `minute()` functions to extract the hour of the day and minute within the hour from `sdate`. Hint: A minute is 1/60 of an hour, so create a variable where 3:30 is 3.5 and 3:45 is 3.75.
+Bike sharing is highest earlier in the season, when it is warmer. It slightly peaks around Christmas, when there is likely more tourism. 
 
-```{r}
-Trips
-```
+  8. A density plot of the events versus time of day.  You can use `mutate()` with `lubridate`'s  `hour()` and `minute()` functions to extract the hour of the day and minute within the hour from `sdate`. Hint: A minute is 1/60 of an hour, so create a variable where 3:30 is 3.5 and 3:45 is 3.75.
 
 
 ```{r}
@@ -201,8 +197,12 @@ Trips %>%
          minute = minute(sdate)/60,
          time = hour + minute) %>%
   ggplot(aes(x = time)) + 
-  geom_density()
+  geom_density() + 
+  labs(title = "Bike Sharing Througout the Day",
+       x = "Hour (in 24 hour time)",
+       y = "Density")
 ```
+  Bike Sharing has peaks around rush hour, which is likely people using bikes to get to and from work. There is also a peak around the lunch hour. 
   
   9. A bar graph of the events versus day of the week. Put day on the y-axis.
   
@@ -210,8 +210,13 @@ Trips %>%
 Trips %>%
   mutate(weekday = weekdays(sdate)) %>%
   ggplot(aes(y = weekday)) + 
-  geom_bar()
+  geom_bar() + 
+  labs(title = "Number of Bikes Rented by Day",
+       x = "Count", 
+       y = "Weekday")
 ```
+Bike sharing is highest during the week, which is also likely because of commuters for work. 
+
   
   10. Facet your graph from exercise 8. by day of the week. Is there a pattern?
   
@@ -223,10 +228,13 @@ Trips %>%
          weekday = weekdays(sdate)) %>%
   ggplot(aes(x = time)) + 
   geom_density() +
-  facet_wrap(~weekday)
+  facet_wrap(~weekday) + 
+  labs(title = "Bike Sharing Througout the Week",
+       x = "Hours (in 24 hour time)",
+       y = "Density")
 ```
+During the week, the distributions are bimodal, with peaks during rush hour due to routine work users. During the weekends, the distributions are unimodal, as these are likely mostly pleasure users, who use them more evenly throughout the day. 
 
-Weekdays have bimodal distributions, while weekends have unimodal distributions. 
   
 The variable `client` describes whether the renter is a regular user (level `Registered`) or has not joined the bike-rental organization (`Causal`). The next set of exercises investigate whether these two different categories of users show different rental behavior and how `client` interacts with the patterns you found in the previous exercises. Repeat the graphic from Exercise \@ref(exr:exr-temp) (d) with the following changes:
 
@@ -271,33 +279,75 @@ Trips %>%
          minute = minute(sdate)/60,
          time = hour + minute,
          weekdays = wday(sdate, label = TRUE),
-         weekend = ifelse(weekdays == c("Saturday", "Sunday"), "weekend", "weekday")) %>%
+         weekend = ifelse(weekdays %in% c("Sat", "Sun"), "weekend", "weekday")) %>%
   ggplot(aes(x = time,
-             fill = client,
-             alpha = 0.5)) + 
+             fill = client)) + 
   geom_density(color = NA,
-               position = position_stack()) +
+               position = position_stack(),
+               alpha = 0.5) +
   facet_wrap(~weekend)
 ```
   
   14. Change the graph from the previous problem to facet on `client` and fill with `weekday`. What information does this graph tell you that the previous didn't? Is one graph better than the other?
   
 ```{r}
-
+Trips %>%
+  mutate(hour = hour(sdate),
+         minute = minute(sdate)/60,
+         time = hour + minute,
+         weekdays = wday(sdate, label = TRUE),
+         weekend = ifelse(weekdays %in% c("Sat", "Sun"), "weekend", "weekday")) %>%
+  ggplot(aes(x = time,
+             fill = weekend)) + 
+  geom_density(color = NA,
+               position = position_stack(),
+               alpha = 0.5) +
+  facet_wrap(~client)
 ```
+
+This graph makes it easy to see that casual users always use the bikes most in the middle of the day and exhibit a unimodal distribution. I wouldn't say that one graph is better than the other, as they both generally display the same information and emphasize different parts of it. 
   
 ### Spatial patterns
 
   15. Use the latitude and longitude variables in `Stations` to make a visualization of the total number of departures from each station in the `Trips` data. Use either color or size to show the variation in number of departures. We will improve this plot next week when we learn about maps!
   
-```{r}
 
+```{r}
+Trips %>%
+  left_join(Stations,
+            by = c("sstation" = "name")) %>%
+  group_by(lat, long) %>%
+  summarize(total_deps = n()) %>%
+  ggplot(aes(x = lat, 
+             y = long,
+             size = total_deps)) + 
+  geom_point() + 
+  labs(title = "Bike Departures by Location", 
+       x = "Latitude",
+       y = "Longitude", 
+       size = "Total Departures")
 ```
+
   
   16. Only 14.4% of the trips in our data are carried out by casual users. Create a plot that shows which area(s) have stations with a much higher percentage of departures by casual users. What patterns do you notice? (Again, we'll improve this next week when we learn about maps).
   
 ```{r}
-
+Trips %>%
+  left_join(Stations,
+            by = c("sstation" = "name")) %>%
+  group_by(lat, long, client) %>%
+  summarize(total_deps = n()) %>%
+  mutate(casprop = mean(client == "Casual")) %>%
+  ggplot(aes(x = lat, 
+             y = long,
+             size = total_deps,
+             color= casprop)) + 
+  geom_point() + 
+  labs(title = "Number and Nature of Bike Departures by Location", 
+       x = "Latitude", 
+       y = "Longitude",
+       size = "Total Departures",
+       color = "Proportion of Users that Are Casual Users")
 ```
   
 ### Spatiotemporal patterns
@@ -305,16 +355,43 @@ Trips %>%
   17. Make a table with the ten station-date combinations (e.g., 14th & V St., 2014-10-14) with the highest number of departures, sorted from most departures to fewest. Save this to a new dataset and print out the dataset. Hint: `as_date(sdate)` converts `sdate` from date-time format to date format. 
   
 ```{r}
+Trips2 <- Trips %>%  
+  mutate(date = as_date(sdate)) %>%
+  group_by(sstation, date) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  head(n = 10)
 
+Trips2
 ```
   
   18. Use a join operation to make a table with only those trips whose departures match those top ten station-date combinations from the previous part.
   
 ```{r}
-
+Trips %>%
+  mutate(date = as_date(sdate)) %>%
+  semi_join(Trips2,
+             by = c("sstation", "date"))
 ```
   
   19. Build on the code from the previous problem (ie. copy that code below and then %>% into the next step.) and group the trips by client type and day of the week (use the name, not the number). Find the proportion of trips by day within each client type (ie. the proportions for all 7 days within each client type add up to 1). Display your results so day of week is a column and there is a column for each client type. Interpret your results.
+
+```{r}
+Trips %>%
+  mutate(date = as_date(sdate)) %>%
+  semi_join(Trips2,
+             by = c("sstation", "date")) %>%
+  mutate(weekdays = wday(sdate, label = TRUE)) %>%  
+  group_by(client) %>%
+  mutate(total_trips = n())%>%
+  ungroup() %>%
+  group_by(client, weekdays) %>%
+  mutate(client_trips = n(),
+         prop = client_trips/total_trips)
+```
+
+Regular users are more likely to use the bikes during the week, while there are many more non-regular users during the weekend. This backs up what I had previously predicted. 
+
 
 **DID YOU REMEMBER TO GO BACK AND CHANGE THIS SET OF EXERCISES TO THE LARGER DATASET? IF NOT, DO THAT NOW.**
 
@@ -327,6 +404,20 @@ Trips %>%
 This problem uses the data from the Tidy Tuesday competition this week, `kids`. If you need to refresh your memory on the data, read about it [here](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-09-15/readme.md). 
 
   21. In this exercise, you are going to try to replicate the graph below, created by Georgios Karamanis. I'm sure you can find the exact code on GitHub somewhere, but **DON'T DO THAT!** You will only be graded for putting an effort into this problem. So, give it a try and see how far you can get without doing too much googling. HINT: use `facet_geo()`. The graphic won't load below since it came from a location on my computer. So, you'll have to reference the original html on the moodle page to see it.
-  
+
+
+```{r}
+kids %>%
+  filter(year == 1997|year == 2016) %>%
+  filter(variable == "lib") %>%
+  mutate(lib_spending = round(inf_adj_perchild*10000)) %>%
+  ggplot(aes(x = year, y = lib_spending)) + 
+  geom_line() + 
+  facet_geo(~state) + 
+  labs(title = "Change in Library Spending Per Child, 1997-2016",
+       y = "Dollars Spent Per Child",
+       x = "Year")
+```
+
 
 **DID YOU REMEMBER TO UNCOMMENT THE OPTIONS AT THE TOP?**
